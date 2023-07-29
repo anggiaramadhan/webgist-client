@@ -3,14 +3,20 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import Components from 'unplugin-vue-components/vite'
-import { BootstrapVueNextResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
     Components({
-      resolvers: [BootstrapVueNextResolver()]
+      dirs: ['src/components'],
+
+      // valid file extensions for components.
+      extensions: ['vue'],
+
+      // Glob patterns to match file names to be detected as components.
+      // When specified, the `dirs` and `extensions` options will be ignored.
+      globs: ['src/components/*.{vue}']
     })
   ],
   resolve: {

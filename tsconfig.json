@@ -17,5 +17,7 @@
     },
     "include": [
         "components.d.ts"
-    ]
+    ],
+    "noImplicitAny": false,
+    "allowJs": true,
 }
