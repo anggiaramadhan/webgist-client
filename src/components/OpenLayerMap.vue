@@ -6,13 +6,13 @@
 import { ref, onMounted } from 'vue';
 import { useBasemapStore } from '@/store/baseMapStore'
 import { Map } from 'ol';
+import "ol/ol.css"
 
 const map = ref<Map | null>(null);
 
 const basemapStore = useBasemapStore();
 
 onMounted(() => {
-  // Initialize the map and set the map instance in the store
   basemapStore.initializeMap();
   map.value = basemapStore.map;
 });

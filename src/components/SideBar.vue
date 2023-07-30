@@ -7,7 +7,7 @@
 
     <div>
       <label for="basemap">Select Basemap:</label>
-      <select v-model="selectedBasemap" @change="updateBasemap">
+      <select class="form-select" v-model="selectedBasemap" @change="updateBasemap">
         <option value="osm">OpenStreetMap</option>
         <option value="esri">Esri Basemap</option>
         <option value="google">Google Map</option>
