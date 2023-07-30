@@ -6,13 +6,14 @@ import { fromLonLat } from 'ol/proj'
 import VectorLayer from 'ol/layer/Vector'
 import GeoJSON from 'ol/format/GeoJSON'
 import VectorSource from 'ol/source/Vector'
+import { Style, Fill, Stroke, Circle, Text } from 'ol/style'
+import { Select } from 'ol/interaction';
 
 export const useBasemapStore = defineStore({
   id: 'basemap',
   state: () => ({
     selectedBasemap: 'osm' as 'osm' | 'esri' | 'google',
-    map: null as Map | null,
-    geoSpatialDataUrl: 'http://localhost:5000/wfs/1',
+    map: null as Map | null
   }),
   actions: {
     initializeMap() {
@@ -24,6 +25,7 @@ export const useBasemapStore = defineStore({
           zoom: 6
         })
       })
+
       this.updateBasemap()
     },
     updateBasemap() {
@@ -44,10 +46,6 @@ export const useBasemapStore = defineStore({
         case 'google':
           this.addGoogleMapLayer()
           break
-      }
-
-      if (this.geoSpatialDataUrl) {
-        this.loadGeospatialData()
       }
     },
     addOpenStreetMapLayer() {
@@ -93,69 +91,63 @@ export const useBasemapStore = defineStore({
         )
       }
     },
-    addGeospatialUrl(url: string) {
-      this.geoSpatialDataUrl = url
-    },
-    loadGeospatialData() {
-      if (!this.map && !this.geoSpatialDataUrl) return
-
-      this.map?.getLayers().forEach((layer) => {
-        if (layer instanceof VectorLayer) {
-          this.map?.removeLayer(layer)
-        }
-
-        
-
-        fetch(this.geoSpatialDataUrl)
-          .then((response) => response.json())
-          .then((data) => {
-            const vectorSource = new VectorSource({
-              features: new GeoJSON().readFeatures(data)
-            })
-
-            const vectorLayer = new VectorLayer({
-              source: vectorSource
-            })
-
-            this.map?.addLayer(vectorLayer)
-          })
-          .catch((err) => console.error('error while fetching gespatial data', err))
-      })
-    },
     uploadFile(file: any) {
       if (!file) {
-        console.error('No file selected.');
-        return;
+        console.error('No file selected.')
+        return
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
+      const formData = new FormData()
+      formData.append('file', file)
 
       fetch('http://localhost:5000/upload', {
         method: 'POST',
-        body: formData,
+        body: formData
       })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log(data);
-        const vectorSource = new VectorSource({
-          features: new GeoJSON().readFeatures(data.data)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok')
+          }
+          return response.json()
         })
+        .then((data) => {
+          const geojsonFormat = new GeoJSON();
+          const features = geojsonFormat.readFeatures(data.data);
 
-        const vectorLayer = new VectorLayer({
-          source: vectorSource
+          const vectorSource = new VectorSource({
+            features,
+          });
+
+          const vectorLayer = new VectorLayer({
+            source: vectorSource,
+            style: new Style({
+              fill: new Fill({
+                color: 'rgba(255, 0, 0, 0.2)',
+              }),
+              stroke: new Stroke({
+                color: 'red',
+                width: 2,
+              }),
+              image: new Circle({
+                radius: 6,
+                fill: new Fill({
+                  color: 'blue',
+                }),
+              }),
+            }),
+          });
+
+          this.map?.addLayer(vectorLayer);
+
+          const select = new Select({
+            layers: [vectorLayer],
+          });
+          this.map?.addInteraction(select)
+
         })
-
-        this.map?.addLayer(vectorLayer)
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-    },
+        .catch((error) => {
+          console.error('Error fetching and rendering geospatial data:', error)
+        })
+    }
   }
 })
