@@ -3,12 +3,16 @@ import { Map, View } from 'ol'
 import TileLayer from 'ol/layer/Tile'
 import XYZ from 'ol/source/XYZ'
 import { fromLonLat } from 'ol/proj'
+import VectorLayer from 'ol/layer/Vector'
+import GeoJSON from 'ol/format/GeoJSON'
+import VectorSource from 'ol/source/Vector'
 
 export const useBasemapStore = defineStore({
   id: 'basemap',
   state: () => ({
     selectedBasemap: 'osm' as 'osm' | 'esri' | 'google',
-    map: null as Map | null
+    map: null as Map | null,
+    geoSpatialDataUrl: 'http://localhost:5000/wfs/1',
   }),
   actions: {
     initializeMap() {
@@ -16,8 +20,8 @@ export const useBasemapStore = defineStore({
         target: 'map',
         layers: [],
         view: new View({
-          center: fromLonLat([0, 0]),
-          zoom: 2
+          center: fromLonLat([105.461909, -3.84270186, 0]),
+          zoom: 6
         })
       })
       this.updateBasemap()
@@ -40,6 +44,10 @@ export const useBasemapStore = defineStore({
         case 'google':
           this.addGoogleMapLayer()
           break
+      }
+
+      if (this.geoSpatialDataUrl) {
+        this.loadGeospatialData()
       }
     },
     addOpenStreetMapLayer() {
@@ -64,7 +72,6 @@ export const useBasemapStore = defineStore({
               url:
                 'https://server.arcgisonline.com/ArcGIS/rest/services/' +
                 'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-              projection: 'EPSG:3857',
               maxZoom: 19
             })
           })
@@ -79,14 +86,76 @@ export const useBasemapStore = defineStore({
               attributions:
                 'Tiles © <a href="https://services.arcgisonline.com/ArcGIS/' +
                 'rest/services/World_Topo_Map/MapServer">ArcGIS</a>',
-              url:
-                'http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
-              projection: 'EPSG:3857',
+              url: 'http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
               maxZoom: 19
             })
           })
         )
       }
-    }
+    },
+    addGeospatialUrl(url: string) {
+      this.geoSpatialDataUrl = url
+    },
+    loadGeospatialData() {
+      if (!this.map && !this.geoSpatialDataUrl) return
+
+      this.map?.getLayers().forEach((layer) => {
+        if (layer instanceof VectorLayer) {
+          this.map?.removeLayer(layer)
+        }
+
+        
+
+        fetch(this.geoSpatialDataUrl)
+          .then((response) => response.json())
+          .then((data) => {
+            const vectorSource = new VectorSource({
+              features: new GeoJSON().readFeatures(data)
+            })
+
+            const vectorLayer = new VectorLayer({
+              source: vectorSource
+            })
+
+            this.map?.addLayer(vectorLayer)
+          })
+          .catch((err) => console.error('error while fetching gespatial data', err))
+      })
+    },
+    uploadFile(file: any) {
+      if (!file) {
+        console.error('No file selected.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log(data);
+        const vectorSource = new VectorSource({
+          features: new GeoJSON().readFeatures(data.data)
+        })
+
+        const vectorLayer = new VectorLayer({
+          source: vectorSource
+        })
+
+        this.map?.addLayer(vectorLayer)
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    },
   }
 })
