@@ -1,43 +1,26 @@
 <template>
-    <div ref="mapElement" class="map"></div>
+  <div ref="mapElement" id="map"></div>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
-import 'ol/ol.css'
-import Map from 'ol/Map'
-import View from 'ol/View'
-import TileLayer from 'ol/layer/Tile'
-import OSM from 'ol/source/OSM'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useBasemapStore } from '@/store/baseMapStore'
+import { Map } from 'ol';
 
-export default {
-    setup() {
-        const mapElement = ref(null)
-        onMounted(() => {
-            new Map({
-                target: mapElement.value,
-                layers: [
-                    new TileLayer({
-                        source: new OSM()
-                    })
-                ],
-                view: new View({
-                    center: [0, 0],
-                    zoom: 2
-                })
-            })
-        })
+const map = ref<Map | null>(null);
 
-        return {
-            mapElement
-        }
-    }
-}
+const basemapStore = useBasemapStore();
+
+onMounted(() => {
+  // Initialize the map and set the map instance in the store
+  basemapStore.initializeMap();
+  map.value = basemapStore.map;
+});
 </script>
 
 <style>
-.map {
-    width: 100%;
-    height: 100vh;
+#map {
+  width: 100%;
+  height: 100vh;
 }
 </style>
