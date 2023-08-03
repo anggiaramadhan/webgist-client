@@ -2,12 +2,11 @@ import { defineStore } from 'pinia'
 import { Map, View } from 'ol'
 import TileLayer from 'ol/layer/Tile'
 import XYZ from 'ol/source/XYZ'
-import { fromLonLat } from 'ol/proj'
 import VectorLayer from 'ol/layer/Vector'
 import GeoJSON from 'ol/format/GeoJSON'
 import VectorSource from 'ol/source/Vector'
-import { Style, Fill, Stroke, Circle, Text } from 'ol/style'
-import { Select } from 'ol/interaction';
+import { Style, Fill, Stroke, Circle } from 'ol/style'
+import { Select } from 'ol/interaction'
 
 export const useBasemapStore = defineStore({
   id: 'basemap',
@@ -21,7 +20,7 @@ export const useBasemapStore = defineStore({
         target: 'map',
         layers: [],
         view: new View({
-          center: fromLonLat([105.461909, -3.84270186, 0]),
+          center: [0, 0],
           zoom: 6
         })
       })
@@ -47,6 +46,9 @@ export const useBasemapStore = defineStore({
           this.addGoogleMapLayer()
           break
       }
+
+      // vector layer
+      this.addVectorLayer()
     },
     addOpenStreetMapLayer() {
       if (this.map) {
@@ -111,43 +113,59 @@ export const useBasemapStore = defineStore({
           return response.json()
         })
         .then((data) => {
-          const geojsonFormat = new GeoJSON();
-          const features = geojsonFormat.readFeatures(data.data);
+          const geojsonFormat = new GeoJSON()
+          const features = geojsonFormat.readFeatures(data.data)
 
           const vectorSource = new VectorSource({
-            features,
-          });
+            features
+          })
 
           const vectorLayer = new VectorLayer({
             source: vectorSource,
             style: new Style({
               fill: new Fill({
-                color: 'rgba(255, 0, 0, 0.2)',
+                color: 'rgba(255, 0, 0, 0.2)'
               }),
               stroke: new Stroke({
                 color: 'red',
-                width: 2,
+                width: 2
               }),
               image: new Circle({
                 radius: 6,
                 fill: new Fill({
-                  color: 'blue',
-                }),
-              }),
-            }),
-          });
+                  color: 'blue'
+                })
+              })
+            })
+          })
 
-          this.map?.addLayer(vectorLayer);
+          this.map?.addLayer(vectorLayer)
 
           const select = new Select({
-            layers: [vectorLayer],
-          });
+            layers: [vectorLayer]
+          })
           this.map?.addInteraction(select)
-
         })
         .catch((error) => {
           console.error('Error fetching and rendering geospatial data:', error)
         })
+    },
+    addVectorLayer() {
+      const source = new VectorSource({
+        url: 'http://localhost:5000/wfs/26',
+        format: new GeoJSON()
+      })
+
+      source.getView().then((data) => console.log(data))
+
+      const vectorLayer = new VectorLayer({
+        source: source,
+        zIndex: 100
+      })
+
+      this.map?.addLayer(vectorLayer)
+
+      // console.log(this.map?.getView())
     }
   }
 })
